@@ -19,8 +19,6 @@ from subprocess import call
 ERROR_FILE_NAME = "error_dump"
 
 
-
-
 class RequestHandler:
 
     def __init__(self):
@@ -63,8 +61,6 @@ class RequestHandler:
         if file:
             filename = secure_filename('mapping.json')
             file.save(os.path.join('', filename))
-
-        call(["ls"])
 
         return 'File accepted'
 
