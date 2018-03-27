@@ -66,7 +66,9 @@ class ThreadClass(Thread):
 
             while True:
 
-                data = self.download_from_api_url(api_url, size, index)
+                print("HERE")
+
+                data = self.download_from_api_url(self.api_url, size, index)
 
                 map_id_projections = collections.OrderedDict(sorted(conv.parse(data).items()))
 
@@ -85,6 +87,8 @@ class ThreadClass(Thread):
                 print("Process")
 
                 # manager.process_batch(map_id_projections, RECOVERY_PATH, begin_index=recovery_line)
+
+                print(map_id_projections)
 
                 if len(data) < size:
                     print("exit")
