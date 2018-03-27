@@ -1,0 +1,3 @@
+[submodule "ziggy_enabler"]
+	path = ziggy_enabler
+	url = https://github.com/florianberthelot/ziggy_enabler.git
