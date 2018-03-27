@@ -44,7 +44,7 @@ class ThreadClass(Thread):
 
         try:
 
-            if not os.path.exists(MAPPING_PATH):
+            if os.path.exists(MAPPING_PATH):
                 try:
                     with open(os.path.join(MAPPING_PATH), "r") as f:
                         mapping = json.load(f)
