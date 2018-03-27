@@ -14,6 +14,8 @@ from threading import Event
 
 from state import SingletonState
 
+from subprocess import call
+
 ERROR_FILE_NAME = "error_dump"
 
 
@@ -58,12 +60,11 @@ class RequestHandler:
             return 'No mapping file provide'
         file = request.files['mapping.json']
 
-        if file.filename == '':
-            return 'No selected file'
-
         if file:
-            filename = secure_filename(file.filename)
+            filename = secure_filename('mapping.json')
             file.save(os.path.join('', filename))
+
+        call(["ls"])
 
         return 'File accepted'
 
