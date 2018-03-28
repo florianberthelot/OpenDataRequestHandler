@@ -104,7 +104,8 @@ class ThreadClass(Thread):
             print(traceback.print_exc())
             error_file = open(ERROR_FILE_NAME, "w")
             error_file.write(str(e))
-            self.stopped.set()
+            if self.stopped is not None:
+                self.stopped.set()
             self.state.set_state('CRASHED')
 
     def download_from_api_url(self, size, index):
