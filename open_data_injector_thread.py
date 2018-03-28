@@ -21,11 +21,16 @@ class ThreadClass(Thread):
     def extract_subpart_dict(self, dict, first_element):
         return {k: dict[k] for k in list(dict.keys())[first_element:] if k in dict}
 
-    def __init__(self, api_url, interval=300, event=None):
+    def __init__(self, api_url, index_field, size_field, path_data_list, interval=300, event=None):
         Thread.__init__(self)
         self.stopped = event
         self.state = SingletonState.instance()
         self.api_url = api_url
+        self.index_field = index_field
+        self.size_field = size_field
+        self.path_data_list = path_data_list
+        self.separator = '.'
+
         self.interval = interval
 
     def run(self):
@@ -66,9 +71,7 @@ class ThreadClass(Thread):
 
             while True:
 
-                print("HERE")
-
-                data = self.download_from_api_url(self.api_url, size, index)
+                data = self.download_from_api_url(size, index)
 
                 map_id_projections = collections.OrderedDict(sorted(conv.parse(data).items()))
 
@@ -86,12 +89,11 @@ class ThreadClass(Thread):
 
                 print("Process")
 
-                # manager.process_batch(map_id_projections, RECOVERY_PATH, begin_index=recovery_line)
+                manager.process_batch(map_id_projections, RECOVERY_PATH, begin_index=recovery_line)
 
                 print(map_id_projections)
 
                 if len(data) < size:
-                    print("exit")
                     break
 
                 index = index + 1
@@ -102,9 +104,15 @@ class ThreadClass(Thread):
             error_file.write(str(e))
             self.state.set_state('CRASHED')
 
-    def download_from_api_url(self, url, size, index):
-        params = {'start': index * size, 'rows': size}
-        response = requests.get(url, params=params)
+    def download_from_api_url(self, size, index):
+
+        if self.size_field is None:
+            raise Exception("Size field is None")
+        if self.index_field is None:
+            raise Exception("Index field is None")
+
+        params = {str(self.index_field): index * size, str(self.size_field): size}
+        response = requests.get(self.api_url, params=params)
 
         if 400 <= response.status_code < 500:
             print(response.content)
@@ -115,13 +123,39 @@ class ThreadClass(Thread):
         if isinstance(content, bytes):
             content = content.decode("utf-8")
 
-        content = json.loads(content)
+        try:
+            content = json.loads(content)
+        except Exception:
+            raise Exception("Cannot convert response content into json")
 
-        if type(content) != list:
-            content = content.get("records")
+        content = self.reach_data_list(content)
 
-        if content is None:
-            print(response.status_code)
-            raise Exception('There is no list in retrieved data')
+        if not isinstance(content, list):
+            raise Exception('The given data list path do not refer to a list')
 
         return content
+
+    def reach_data_list(self, content):
+
+        if self.path_data_list == "":
+            return content
+
+        path_data_list = self.path_data_list.split(self.separator)
+
+        reached_data_list = content
+
+        for param in path_data_list:
+
+            if isinstance(reached_data_list, list):
+                try:
+                    index = int(param)
+                except ValueError:
+                    raise Exception(
+                        "You try to access list value with non integer value.\n Path to the value {}.".format(
+                            path_data_list))
+                reached_data_list = reached_data_list[index]
+            else:
+
+                reached_data_list = reached_data_list[param]
+
+        return reached_data_list

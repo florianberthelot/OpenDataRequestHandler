@@ -44,3 +44,7 @@ def cannot_reach_provided_url():
 
 def cannot_convert_interval():
     return 'Cannot convert the provided interval into integer', 400
+
+
+def interval_parameter_missing():
+    return 'Interval parameter is missing in json data', 400

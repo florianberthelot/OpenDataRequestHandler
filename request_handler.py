@@ -8,13 +8,13 @@ import os
 
 import requests
 
+from requests.exceptions import RequestException
+
 import errors
 
 from threading import Event
 
 from state import SingletonState
-
-from subprocess import call
 
 ERROR_FILE_NAME = "error_dump"
 
@@ -23,6 +23,11 @@ class RequestHandler:
 
     def __init__(self):
         self.state = SingletonState.instance()
+        self.api_url = None
+        self.index_field = None
+        self.size_field = None
+        self.path_data_list = None
+        self.stopFlag = None
 
     def get_state(self):
         return jsonify({"state": self.state.get_state()})
@@ -45,7 +50,7 @@ class RequestHandler:
         with open(ERROR_FILE_NAME, 'r') as error_file:
             content = error_file.read()
 
-        return (str(content), 200)
+        return str(content), 200
 
     def set_mapping(self, request):
 
@@ -73,7 +78,7 @@ class RequestHandler:
 
         try:
             json_data = request.json
-        except:
+        except Exception:
             return errors.malformed_json_data()
 
         if json_data is None:
@@ -85,19 +90,36 @@ class RequestHandler:
 
         try:
             requests.get(open_data_url)
-        except:
+        except RequestException:
             return errors.cannot_reach_provided_url()
+
+        open_data_url = json_data.get('api_url')
 
         self.api_url = open_data_url
 
-        return 'URL accepted', 200
+        try:
+            self.index_field = json_data['index_field']
+        except KeyError:
+            return "Missing index field", 400
+
+        try:
+            self.size_field = json_data['size_field']
+        except KeyError:
+            return "Missing size field", 400
+
+        try:
+            self.path_data_list = json_data['path_data_list']
+        except KeyError:
+            return "Missing path to data list", 400
+
+        return 'Data configuration accepted', 200
 
     def start(self):
 
         if not self.state.verify_modify_state('AVAILABLE', 'RUNNING'):
             return 'Injector not available'
 
-        thread = open_data_injector_thread.ThreadClass(self.api_url)
+        thread = open_data_injector_thread.ThreadClass(self.api_url, self.index_field, self.size_field, self.path_data_list)
         thread.setDaemon(True)
         thread.start()
 
@@ -107,7 +129,7 @@ class RequestHandler:
 
         try:
             json_data = request.json
-        except:
+        except Exception:
             return errors.malformed_json_data()
 
         if json_data is None:
@@ -115,10 +137,13 @@ class RequestHandler:
 
         interval = json_data.get('interval')
 
+        if interval is None:
+            return errors.interval_parameter_missing()
+
         try:
             interval = int(interval)
-        except:
-            errors.cannot_convert_interval()
+        except Exception:
+            return errors.cannot_convert_interval()
 
         if not self.state.verify_modify_state('AVAILABLE', 'INTERVAL_RUNNING'):
             return 'Injector not available'
@@ -127,7 +152,7 @@ class RequestHandler:
 
         self.stopFlag = stopFlag
 
-        thread = open_data_injector_thread.ThreadClass(self.api_url, interval=interval, event=stopFlag)
+        thread = open_data_injector_thread.ThreadClass(self.api_url, self.index_field, self.size_field, self.path_data_list, interval=interval, event=stopFlag)
         thread.setDaemon(True)
         thread.start()
 
