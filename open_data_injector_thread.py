@@ -40,7 +40,7 @@ class ThreadClass(Thread):
         while self.stopped is not None and not self.stopped.wait(self.interval):
             self.inject()
 
-        if self.state.get_state() != 'PAUSE' or self.state.get_state() != 'CRASHED':
+        if self.state.get_state() != 'PAUSE' and self.state.get_state() != 'CRASHED':
             self.state.set_state('AVAILABLE')
 
     def inject(self):
