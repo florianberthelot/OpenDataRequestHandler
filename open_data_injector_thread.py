@@ -40,7 +40,7 @@ class ThreadClass(Thread):
         while self.stopped is not None and not self.stopped.wait(self.interval):
             self.inject()
 
-        if self.state.get_state() != 'PAUSE':
+        if self.state.get_state() != 'PAUSE' or self.state.get_state() != 'CRASHED':
             self.state.set_state('AVAILABLE')
 
     def inject(self):
@@ -102,6 +102,7 @@ class ThreadClass(Thread):
             print(traceback.print_exc())
             error_file = open(ERROR_FILE_NAME, "w")
             error_file.write(str(e))
+            self.stopped.set()
             self.state.set_state('CRASHED')
 
     def download_from_api_url(self, size, index):
@@ -128,34 +129,34 @@ class ThreadClass(Thread):
         except Exception:
             raise Exception("Cannot convert response content into json")
 
-        content = self.reach_data_list(content)
+        content = self.reach_data(content)
 
         if not isinstance(content, list):
             raise Exception('The given data list path do not refer to a list')
 
         return content
 
-    def reach_data_list(self, content):
+    def reach_data(self, content):
 
         if self.path_data_list == "":
             return content
 
         path_data_list = self.path_data_list.split(self.separator)
 
-        reached_data_list = content
+        reached_data = content
 
         for param in path_data_list:
 
-            if isinstance(reached_data_list, list):
+            if isinstance(reached_data, list):
                 try:
                     index = int(param)
                 except ValueError:
                     raise Exception(
                         "You try to access list value with non integer value.\n Path to the value {}.".format(
                             path_data_list))
-                reached_data_list = reached_data_list[index]
+                reached_data = reached_data[index]
             else:
 
-                reached_data_list = reached_data_list[param]
+                reached_data = reached_data[param]
 
-        return reached_data_list
+        return reached_data
