@@ -94,7 +94,7 @@ class ThreadClass(Thread):
                 print(map_id_projections)
 
                 if len(data) < size:
-                    print(data)
+                    print(len(data))
                     print(size)
                     break
 
